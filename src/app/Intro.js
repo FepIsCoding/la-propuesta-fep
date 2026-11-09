@@ -4,27 +4,26 @@ import { useEffect, useRef, useState } from "react";
 import "./intro.css";
 
 /*
-  Introducción animada de La Propuesta Fep.
+  Introducción animada de La Propuesta Fep (historia de ~68 s).
   Es una capa (overlay) por encima de la web: no modifica page.js ni la API.
-  Todo se sincroniza con audio.currentTime, que es el reloj real de la música.
+  El tiempo sale del reloj de Web Audio (ctx.currentTime), el más preciso del navegador.
+  La música es una pista original a 120 BPM (kick en cada negra), compuesta para esta intro.
 */
 
 const AUDIO_SRC = "/intro/fep-theme.mp3";
 const SEEN_KEY = "fep-intro-seen"; // sessionStorage: solo recuerda "ya la viste" en esta pestaña
 
-// Golpes de kick detectados en el audio (segundos). Los flashes salen de aquí, no son aleatorios.
-const KICKS = [
-  0.02, 0.466, 1.542, 2.474, 2.922, 3.996, 4.928, 5.376, 6.45, 7.384, 7.828, 8.904,
-  9.842, 10.29, 10.76, 11.36, 11.99, 12.3, 12.74, 13.21, 13.81, 14.44, 14.75, 15.19,
-  15.67, 16.27, 17.2, 17.65, 18.13, 18.72, 19.66, 20.11, 20.58, 21.18, 21.81, 22.11,
-  22.56, 23.03, 23.63, 23.95, 24.57, 25.01, 25.49, 26.09, 27.02, 27.47, 27.95, 28.54
-];
+// Kick de la pista: una negra (0,5 s) de 0–24 s y de 32–68 s; en 24–32 s hay un quiebre sin kick.
+const KICKS = [];
+for (const [a, b] of [[0, 24], [32, 68]]) for (let t = a; t < b; t += 0.5) KICKS.push(t);
 
-// Inicio de cada escena: 0 flashes · 1 Fep · 2 impresora · 3 Claude · 4 final (compases de 2,45 s a 98 BPM)
-const SCENES = [0, 9.84, 14.74, 19.64, 24.54];
-const FADE_START = 27.0; // empieza a bajar el volumen
-const FADE_END = 30.2; // volumen en cero
-const LEAVE_AT = 30.2; // transición hacia la web
+// Inicio de cada escena: 0 flashes · b Fep · c impresora · d "no sé modelar" · e Claude Pro ·
+// f Claude Code · g imprime · h festeja · i final
+const SCENES = [0, 10, 16, 24, 32, 42, 52, 56, 60];
+const LETTERS = "bcdefghi";
+const FLASH_UNTIL = SCENES[1]; // solo en los primeros 10 s hay flashes de pantalla completa
+const FADE_START = 62; // la música y la imagen empiezan a apagarse
+const LEAVE_AT = 66.5; // todo en cero: la capa se disuelve y aparece la web
 
 function sceneAt(t) {
   for (let i = SCENES.length - 1; i > 0; i--) if (t >= SCENES[i]) return i;
@@ -45,7 +44,9 @@ function Fep({ pose }) {
         <path className="fi-brim" d="M58 17 L77 19" />
         <circle className="fi-eye" cx="45" cy="23" r="2.2" style={{ transformOrigin: "45px 23px" }} />
         <circle className="fi-eye" cx="57" cy="23" r="2.2" style={{ transformOrigin: "57px 23px" }} />
-        <path className="fi-mouth" d="M44 30 Q51 36 58 30" />
+        <path className="fi-mouth m-smile" d="M44 30 Q51 36 58 30" />
+        <path className="fi-mouth m-sad" d="M44 34 Q51 28 58 34" />
+        <circle className="fi-mouth m-o" cx="51" cy="32" r="3.2" />
       </g>
     </svg>
   );
@@ -86,6 +87,25 @@ function Logo({ className = "" }) {
   );
 }
 
+function Terminal() {
+  const lines = [
+    ["> Hacé un soporte para auriculares", "", "0.4s"],
+    ["✻ Pensando en las medidas…", "dim", "2.6s"],
+    ["● Write(soporte.scad)", "", "4.4s"],
+    ["✓ Listo: soporte.3mf", "ok", "6.4s"]
+  ];
+  return (
+    <div className="fi-term" aria-hidden="true">
+      <div className="fi-term-bar"><i /><i /><i /><span>claude code</span></div>
+      <div className="fi-term-body">
+        {lines.map(([text, kind, delay]) => (
+          <p key={text} className={`fi-ty ${kind}`} style={{ "--n": text.length + 1, "--d": delay }}>{text}</p>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function Scenes({ scene }) {
   if (scene === 0) {
     return (
@@ -95,48 +115,97 @@ function Scenes({ scene }) {
       </div>
     );
   }
-  const letter = "bcde"[scene - 1];
+  const letter = LETTERS[scene - 1];
+  let stage = null;
+  let caption = null;
+
+  if (letter === "b") {
+    stage = <Fep pose="enter" />;
+    caption = (<><h2>Hola, soy <em>Fep.</em></h2><p>Y esta es mi historia</p></>);
+  } else if (letter === "c") {
+    stage = (
+      <>
+        <Fep pose="surprise" />
+        <span className="fi-mark">!</span>
+        <div className="fi-bubble">¡Uy, una impresora 3D!</div>
+        <Printer />
+      </>
+    );
+    caption = (<><h2>Bambu Lab <em>A1 Mini</em></h2><p>De la idea al objeto</p></>);
+  } else if (letter === "d") {
+    stage = (
+      <>
+        <Fep pose="think" />
+        <span className="fi-mark">?</span>
+        <span className="fi-mark q2">?</span>
+        <div className="fi-bubble">Pero… ¡no sé modelar!</div>
+        <Printer className="fi-idle fi-dim fi-nopop" />
+      </>
+    );
+    caption = (<><h2>Hay un <em>problema…</em></h2><p>Diseñar en 3D no es tan fácil</p></>);
+  } else if (letter === "e") {
+    stage = (
+      <>
+        <Fep pose="pointUp" />
+        <div className="fi-bubble">¡Qué suerte! Claude Pro hace tareas más difíciles y puede hacer de todo</div>
+        <Logo />
+      </>
+    );
+    caption = (
+      <>
+        <h2>¡Hace <em>de todo!</em></h2>
+        <p>Claude Pro · ideas · código · aprender</p>
+        <div className="fi-price">
+          <b>US$20 / mes</b> plan mensual estándar (EE. UU.)
+          <small>La API de Anthropic se cobra aparte.</small>
+        </div>
+      </>
+    );
+  } else if (letter === "f") {
+    stage = (
+      <>
+        <Terminal />
+        <Fep pose="pointUp" />
+        <div className="fi-bubble">¡Y trae las capacidades de Claude Code también!</div>
+        <Logo className="fi-mini" />
+      </>
+    );
+    caption = (<><h2>Claude <em>Code</em></h2><p>Escribe el código por vos</p></>);
+  } else if (letter === "g") {
+    stage = (
+      <>
+        <Fep pose="point" />
+        <Printer className="fi-nopop" />
+      </>
+    );
+    caption = (<><h2>De la idea <em>al objeto</em></h2><p>Diseñado por Claude · impreso en la A1 Mini</p></>);
+  } else if (letter === "h") {
+    stage = (
+      <>
+        <Fep pose="cheer" />
+        <div className="fi-bubble">¡Lo logramos!</div>
+        <Printer className="fi-done fi-nopop" />
+      </>
+    );
+    caption = (<><h2>¡Sin saber <em>modelar!</em></h2><p>Fep + Claude + A1 Mini</p></>);
+  } else {
+    stage = (
+      <>
+        <Printer className="fi-mini fi-done" />
+        <Fep pose="cheer" />
+        <Logo className="fi-mini" />
+      </>
+    );
+    caption = (<><h2>La <em>Propuesta</em> Fep</h2><p>Creado por Fep</p></>);
+  }
+
   return (
     <div key={scene} className={`fi-scene fi-sc-${letter}`}>
       <div className="fi-stage">
-        {scene === 1 && <Fep pose="enter" />}
-        {scene === 2 && (
-          <>
-            <Fep pose="point" />
-            <Printer />
-          </>
-        )}
-        {scene === 3 && (
-          <>
-            <Fep pose="pointUp" />
-            <div className="fi-bubble">¿Y si lo diseñamos juntos?</div>
-            <Logo />
-          </>
-        )}
-        {scene === 4 && (
-          <>
-            <Printer className="fi-mini" />
-            <Fep pose="cheer" />
-            <Logo className="fi-mini" />
-          </>
-        )}
+        {stage}
         <div className="fi-ground" />
       </div>
-      <div className="fi-caption">
-        {scene === 1 && (<><h2>Hola, soy <em>Fep.</em></h2><p>Y traigo una propuesta.</p></>)}
-        {scene === 2 && (<><h2>Bambu Lab <em>A1 Mini</em></h2><p>De la idea al objeto</p></>)}
-        {scene === 3 && (
-          <>
-            <h2>Claude <em>Pro</em></h2>
-            <p>Ideas · código · aprender</p>
-            <div className="fi-price">
-              <b>US$20 / mes</b> plan mensual estándar (EE. UU.)
-              <small>La API de Anthropic se cobra aparte.</small>
-            </div>
-          </>
-        )}
-        {scene === 4 && (<><h2>La <em>Propuesta</em> Fep</h2><p>Creado por Fep</p></>)}
-      </div>
+      <div className="fi-caption">{caption}</div>
     </div>
   );
 }
@@ -144,12 +213,23 @@ function Scenes({ scene }) {
 export default function Intro() {
   const [phase, setPhase] = useState("boot"); // boot | ready | playing | leaving | done
   const [scene, setScene] = useState(0);
+  const [fast, setFast] = useState(false);
   const rootRef = useRef(null);
   const api = useRef({ start() {}, skip() {} });
 
   useEffect(() => {
     const html = document.documentElement;
+    const unlock = () => {
+      html.classList.remove("fep-intro-on");
+      html.classList.add("fep-intro-off");
+    };
     if (!html.classList.contains("fep-intro-on")) {
+      setPhase("done");
+      return;
+    }
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) {
+      unlock(); // sin Web Audio no hay intro: se va directo a la web
       setPhase("done");
       return;
     }
@@ -160,34 +240,30 @@ export default function Intro() {
     let ended = false;
     let cancelled = false;
     let sceneNow = 0;
+    let t0 = 0;
+    let source = null;
 
-    const audio = new Audio(AUDIO_SRC);
-    audio.preload = "auto";
-    audio.loop = false;
-
-    // Web Audio solo para controlar el volumen (iOS ignora audio.volume).
-    let ctx = null;
-    let gain = null;
+    const ctx = new AC();
+    const gain = ctx.createGain();
+    gain.connect(ctx.destination);
     try {
-      const AC = window.AudioContext || window.webkitAudioContext;
-      if (AC) {
-        ctx = new AC();
-        gain = ctx.createGain();
-        ctx.createMediaElementSource(audio).connect(gain);
-        gain.connect(ctx.destination);
-      }
-    } catch {
-      ctx = null;
-      gain = null;
-    }
-    try {
-      if (navigator.audioSession) navigator.audioSession.type = "playback";
+      if (navigator.audioSession) navigator.audioSession.type = "playback"; // iOS: suena con el switch en silencio
     } catch {}
 
-    const setVol = (v) => {
-      if (gain && ctx) gain.gain.setTargetAtTime(v, ctx.currentTime, 0.04);
-      else audio.volume = Math.max(0, Math.min(1, v));
-    };
+    // Se decodifica la música desde ya; reproducirla es un paso instantáneo después del toque.
+    const bufferReady = fetch(AUDIO_SRC)
+      .then((r) => {
+        if (!r.ok) throw new Error("audio");
+        return r.arrayBuffer();
+      })
+      .then(
+        (ab) =>
+          new Promise((resolve, reject) => {
+            const p = ctx.decodeAudioData(ab, resolve, reject); // Safari viejo usa callbacks
+            if (p && p.then) p.then(resolve, reject);
+          })
+      );
+    bufferReady.catch(() => finish(true)); // si el audio falla, nunca dejamos al visitante atrapado
 
     // Mientras dura la intro, la web de abajo no recibe foco ni lectores de pantalla.
     const covered = Array.from(document.body.children).filter(
@@ -195,54 +271,50 @@ export default function Intro() {
     );
     covered.forEach((n) => n.setAttribute("inert", ""));
 
+    const setVol = (v) => gain.gain.setTargetAtTime(v, ctx.currentTime, 0.04);
     const markSeen = () => {
       try {
         sessionStorage.setItem(SEEN_KEY, "1");
       } catch {}
     };
-
     const stopAudio = () => {
       try {
-        audio.pause();
+        source && source.stop();
       } catch {}
       try {
-        ctx && ctx.close();
+        ctx.close();
       } catch {}
     };
 
-    const unlock = () => {
-      covered.forEach((n) => n.removeAttribute("inert"));
-      html.classList.remove("fep-intro-on");
-      html.classList.add("fep-intro-off");
-    };
-
-    const finish = (fast) => {
+    function finish(isFast) {
       if (ended) return;
       ended = true;
       cancelAnimationFrame(raf);
       markSeen();
-      if (fast) setVol(0);
+      if (isFast) setVol(0);
+      setFast(!!isFast);
       setPhase("leaving");
-      timers.push(setTimeout(stopAudio, fast ? 350 : 100)); // la música se detiene sí o sí
+      timers.push(setTimeout(stopAudio, isFast ? 350 : 150)); // la música se detiene sí o sí
       timers.push(setTimeout(() => {
+        covered.forEach((n) => n.removeAttribute("inert"));
         unlock();
         setPhase("done");
-      }, 950));
-    };
+      }, isFast ? 600 : 1500));
+    }
 
-    const tick = () => {
-      const t = audio.currentTime;
-      const lat = ctx ? Math.min(0.15, ctx.outputLatency || ctx.baseLatency || 0) : 0;
-      const tv = Math.max(0, t - lat); // tiempo "oído", para clavar el flash con el kick
+    function tick() {
+      const t = Math.max(0, ctx.currentTime - t0); // segundos de música reproducidos
+      const lat = Math.min(0.2, ctx.outputLatency || ctx.baseLatency || 0);
+      const tv = Math.max(0, t - lat); // tiempo realmente oído, para clavar el flash con el kick
 
       let last = -1;
       for (let i = 0; i < KICKS.length && KICKS[i] <= tv; i++) last = KICKS[i];
       const d = last < 0 ? 9 : tv - last;
-      const kick = Math.min(1, d / 0.01) * Math.exp(-d / 0.12);
+      const kick = Math.exp(-d / 0.12);
       const el = rootRef.current;
       if (el) {
         el.style.setProperty("--kick", kick.toFixed(3));
-        el.style.setProperty("--flash", (tv < SCENES[1] ? kick : 0).toFixed(3));
+        el.style.setProperty("--flash", (tv < FLASH_UNTIL ? kick : 0).toFixed(3));
       }
 
       const s = sceneAt(tv);
@@ -252,34 +324,41 @@ export default function Intro() {
       }
 
       if (t >= FADE_START) {
-        const x = Math.min(1, (t - FADE_START) / (FADE_END - FADE_START));
-        setVol(Math.cos((x * Math.PI) / 2));
+        const x = Math.min(1, (t - FADE_START) / (LEAVE_AT - FADE_START));
+        const v = Math.cos((x * Math.PI) / 2);
+        setVol(v); // la música baja...
+        if (el) el.style.setProperty("--fade", v.toFixed(3)); // ...y la imagen se apaga con ella
       }
-      if (t >= LEAVE_AT || audio.ended) {
+      if (t >= LEAVE_AT) {
         finish(false);
         return;
       }
       raf = requestAnimationFrame(tick);
-    };
+    }
 
-    const start = () => {
+    function start() {
       if (started || ended) return;
       started = true;
-      try {
-        ctx && ctx.resume && ctx.resume();
-      } catch {}
-      Promise.resolve(audio.play())
-        .then(() => {
+      setPhase("boot");
+      // resume() debe llamarse dentro del gesto del usuario, por eso va primero y sin esperar.
+      Promise.all([bufferReady, Promise.resolve(ctx.resume())])
+        .then(([buffer]) => {
           if (cancelled || ended) return;
+          if (ctx.state !== "running") throw new Error("blocked");
+          source = ctx.createBufferSource();
+          source.buffer = buffer;
+          source.connect(gain);
+          t0 = ctx.currentTime + 0.05;
+          source.start(t0);
           markSeen();
           setPhase("playing");
           raf = requestAnimationFrame(tick);
         })
         .catch(() => {
           started = false;
-          if (!cancelled) setPhase("ready");
+          if (!cancelled && !ended) setPhase("ready");
         });
-    };
+    }
 
     api.current = { start, skip: () => finish(true) };
 
@@ -289,14 +368,12 @@ export default function Intro() {
     const onKey = (e) => {
       if (e.key === "Escape") finish(true);
     };
-    const onError = () => finish(true); // si el audio falla, nunca dejamos al visitante atrapado
     document.addEventListener("visibilitychange", onHidden);
     document.addEventListener("keydown", onKey);
-    audio.addEventListener("error", onError);
 
-    // Intento de reproducción automática; si el navegador la bloquea, pedimos un toque.
-    if (ctx && ctx.state !== "running") setPhase("ready");
-    else start();
+    // Si el navegador permite audio sin gesto, arranca solo; si no, pide un toque.
+    if (ctx.state === "running") start();
+    else setPhase("ready");
 
     return () => {
       cancelled = true;
@@ -304,7 +381,6 @@ export default function Intro() {
       timers.forEach(clearTimeout);
       document.removeEventListener("visibilitychange", onHidden);
       document.removeEventListener("keydown", onKey);
-      audio.removeEventListener("error", onError);
       stopAudio();
       covered.forEach((n) => n.removeAttribute("inert"));
     };
@@ -315,7 +391,7 @@ export default function Intro() {
   return (
     <div
       ref={rootRef}
-      className={`fep-intro fi-${phase}`}
+      className={`fep-intro fi-${phase}${fast ? " fi-fast" : ""}`}
       role="dialog"
       aria-modal="true"
       aria-label="Introducción animada de La Propuesta Fep"
@@ -329,13 +405,17 @@ export default function Intro() {
             ▶
           </button>
           <p className="fi-ready-title">Tocá para comenzar</p>
-          <p className="fi-note">Incluye música y destellos suaves.</p>
+          <p className="fi-note">Dura ~1 minuto. Incluye música y destellos suaves.</p>
           <button className="fi-link" onClick={() => api.current.skip()}>Entrar sin la intro</button>
           <p className="fi-legal">Proyecto personal. El logo de Claude es marca de Anthropic; no es contenido oficial.</p>
         </div>
       )}
 
-      {(phase === "playing" || phase === "leaving") && <Scenes scene={scene} />}
+      {(phase === "playing" || phase === "leaving") && (
+        <div className="fi-content">
+          <Scenes scene={scene} />
+        </div>
+      )}
 
       {(phase === "ready" || phase === "playing") && (
         <button className="fi-skip" onClick={() => api.current.skip()}>Saltar ›</button>
