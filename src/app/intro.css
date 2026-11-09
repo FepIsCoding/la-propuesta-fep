@@ -1,0 +1,167 @@
+/* Introducción animada. Todo vive bajo .fep-intro: no toca los estilos de la web original. */
+.fep-intro{display:none}
+html.fep-intro-on body{overflow:hidden}
+html.fep-intro-on .fep-intro{
+  --kick:0;--flash:0;--fw:15cqw;--pw:34cqw;--lw:19cqw;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  position:fixed;inset:0;height:100dvh;z-index:9999;overflow:hidden;
+  background:#0f130d;color:#f3f3ed;font-family:'DM Sans',sans-serif;
+  clip-path:circle(150% at 50% 50%);
+}
+.fep-intro::before{content:"";position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(ellipse at 50% 55%,rgba(215,250,88,.22),transparent 60%);
+  opacity:calc(.35 + var(--kick) * .4)}
+.fep-intro.fi-leaving{clip-path:circle(0% at 50% 50%);transition:clip-path .9s cubic-bezier(.7,0,.2,1);pointer-events:none}
+
+/* Flash sincronizado: opacidad máxima moderada (<=.4) y nunca más de ~2 por segundo */
+.fi-flash{position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(circle at 50% 50%,rgba(243,243,237,.9),rgba(215,250,88,.55) 38%,transparent 72%);
+  opacity:calc(var(--flash) * .4)}
+
+.fi-bootmark{position:relative;font:11px 'DM Mono',monospace;letter-spacing:.18em;color:#adb69e}
+
+/* Pantalla "tocá para comenzar" */
+.fi-ready{display:flex;flex-direction:column;align-items:center;gap:10px;padding:24px;text-align:center;position:relative}
+.fi-play{width:96px;height:96px;border-radius:50%;border:0;background:#d7fa58;color:#191d16;font-size:34px;
+  padding-left:6px;cursor:pointer;box-shadow:0 0 0 0 rgba(215,250,88,.5);animation:fi-ping 1.8s ease-out infinite}
+.fi-play:focus-visible,.fi-skip:focus-visible,.fi-link:focus-visible{outline:3px solid #f3f3ed;outline-offset:3px}
+.fi-ready-title{font:800 26px Manrope,sans-serif;letter-spacing:-.03em;margin:14px 0 0}
+.fi-note,.fi-legal{font:11px 'DM Mono',monospace;letter-spacing:.08em;color:#adb69e;margin:0;max-width:320px;line-height:1.7}
+.fi-legal{color:#7d8374;margin-top:18px}
+.fi-link{background:none;border:0;color:#d7fa58;font:12px 'DM Mono',monospace;letter-spacing:.08em;
+  text-decoration:underline;padding:12px;cursor:pointer;margin-top:6px}
+@keyframes fi-ping{to{box-shadow:0 0 0 28px rgba(215,250,88,0)}}
+
+.fi-skip{position:absolute;top:max(14px,env(safe-area-inset-top));right:max(14px,env(safe-area-inset-right));z-index:3;
+  min-height:44px;padding:0 16px;background:rgba(15,19,13,.55);color:#c4cbbb;border:1px solid #4c5643;border-radius:99px;
+  font:11px 'DM Mono',monospace;letter-spacing:.1em;cursor:pointer}
+
+/* Escena 0: flashes + título al ritmo del kick */
+.fi-a{position:relative;display:flex;flex-direction:column;align-items:center}
+.fi-big{font:800 clamp(90px,24vw,260px)/1 Manrope,sans-serif;letter-spacing:-.06em;color:#f3f3ed;
+  opacity:calc(.14 + var(--kick) * .86);transform:scale(calc(1 + var(--kick) * .035))}
+.fi-pres{font:12px 'DM Mono',monospace;letter-spacing:.5em;color:#d7fa58;margin-top:8px;opacity:0;animation:fi-in .6s ease 6.9s forwards}
+
+/* Escenas 1–4 */
+.fi-scene{position:relative;display:flex;flex-direction:column;align-items:center;width:100%;animation:fi-in .3s ease both}
+@keyframes fi-in{from{opacity:0}to{opacity:1}}
+.fi-sc-b::after{content:"";position:fixed;inset:0;pointer-events:none;background:#f3f3ed;opacity:0;animation:fi-drop .6s ease-out}
+@keyframes fi-drop{from{opacity:.35}to{opacity:0}}
+
+.fi-stage{position:relative;container-type:inline-size;aspect-ratio:16/10;
+  width:min(94vw,960px,calc((100dvh - 170px) * 1.6))}
+.fi-ground{position:absolute;left:0;right:0;bottom:12%;height:1px;background:linear-gradient(90deg,transparent,#5a6451,transparent)}
+
+/* Fep (stickman) */
+.fi-fep{position:absolute;width:var(--fw);height:auto;bottom:calc(12% - var(--fw) * .14);overflow:visible;
+  fill:none;stroke:#f3f3ed;stroke-width:5;stroke-linecap:round;stroke-linejoin:round}
+.fi-head{fill:#191d16}
+.fi-cap{fill:#d7fa58;stroke:none}
+.fi-brim{stroke:#d7fa58;stroke-width:4}
+.fi-eye{fill:#d7fa58;stroke:none;animation:fi-blink 3.4s infinite}
+.fi-mouth{stroke:#d7fa58;stroke-width:2.6}
+@keyframes fi-blink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+.fi-leg{transform-origin:50px 94px}
+.fi-arm{transform-origin:50px 52px}
+.fi-armL{transform:rotate(14deg)}
+.fi-armR{transform:rotate(-14deg)}
+
+.fi-sc-b .fi-fep{left:38%}
+.fi-sc-c .fi-fep,.fi-sc-d .fi-fep{left:8%}
+.fi-sc-e .fi-fep{left:50%;margin-left:calc(var(--fw) / -2)}
+
+/* pose: entra caminando y saluda */
+.fi-p-enter{animation:fi-enter 2s cubic-bezier(.25,.7,.3,1) both}
+.fi-p-enter .fi-body{animation:fi-bob .5s ease-in-out 4}
+.fi-p-enter .fi-legA{animation:fi-legA 1s ease-in-out 2}
+.fi-p-enter .fi-legB{animation:fi-legB 1s ease-in-out 2}
+.fi-p-enter .fi-armL{animation:fi-swingL 1s ease-in-out 2}
+.fi-p-enter .fi-armR{animation:fi-swingR 1s ease-in-out 2,fi-wave .5s ease-in-out 2s infinite alternate}
+@keyframes fi-enter{from{transform:translateX(calc(-38cqw - var(--fw)))}to{transform:none}}
+@keyframes fi-bob{50%{transform:translateY(-3px)}}
+@keyframes fi-legA{0%,100%{transform:rotate(0)}25%{transform:rotate(-30deg)}75%{transform:rotate(30deg)}}
+@keyframes fi-legB{0%,100%{transform:rotate(0)}25%{transform:rotate(30deg)}75%{transform:rotate(-30deg)}}
+@keyframes fi-swingL{0%,100%{transform:rotate(14deg)}25%{transform:rotate(46deg)}75%{transform:rotate(-18deg)}}
+@keyframes fi-swingR{0%,100%{transform:rotate(-14deg)}25%{transform:rotate(-46deg)}75%{transform:rotate(18deg)}}
+@keyframes fi-wave{from{transform:rotate(-135deg)}to{transform:rotate(-172deg)}}
+
+/* pose: señala (derecha / arriba-derecha) y salta al final */
+.fi-p-point .fi-armR{animation:fi-toPoint .35s ease-out both,fi-nudge .8s ease-in-out .35s infinite alternate}
+.fi-p-point{animation:fi-hop .5s ease-out 4.6s both}
+.fi-p-pointUp .fi-armR{animation:fi-toUp .35s ease-out both,fi-nudgeUp .8s ease-in-out .35s infinite alternate}
+@keyframes fi-toPoint{from{transform:rotate(-14deg)}to{transform:rotate(-92deg)}}
+@keyframes fi-nudge{from{transform:rotate(-92deg)}to{transform:rotate(-80deg)}}
+@keyframes fi-toUp{from{transform:rotate(-14deg)}to{transform:rotate(-128deg)}}
+@keyframes fi-nudgeUp{from{transform:rotate(-128deg)}to{transform:rotate(-140deg)}}
+@keyframes fi-hop{0%,100%{transform:none}40%{transform:translateY(-12%)}}
+
+/* pose: festeja */
+.fi-p-cheer{animation:fi-jump .61s ease-in-out infinite}
+.fi-p-cheer .fi-armL{animation:fi-cheerL .3s ease-in-out infinite alternate}
+.fi-p-cheer .fi-armR{animation:fi-cheerR .3s ease-in-out infinite alternate}
+@keyframes fi-jump{0%,100%{transform:none}50%{transform:translateY(-9%)}}
+@keyframes fi-cheerL{from{transform:rotate(145deg)}to{transform:rotate(165deg)}}
+@keyframes fi-cheerR{from{transform:rotate(-145deg)}to{transform:rotate(-165deg)}}
+
+/* Impresora Bambu Lab A1 Mini (dibujo propio) */
+.fi-printer{position:absolute;width:var(--pw);aspect-ratio:1;bottom:calc(12% - var(--pw) * .07);overflow:visible;
+  animation:fi-pop .5s cubic-bezier(.3,1.4,.5,1) both}
+.fi-sc-c .fi-printer{right:8%}
+.fi-printer.fi-mini{width:calc(var(--pw) * .6);left:2%;right:auto;bottom:calc(12% - var(--pw) * .042)}
+.fi-obj{transform-origin:110px 150px;animation:fi-grow 4.2s steps(14) .5s both}
+.fi-gantry{animation:fi-rise 4.2s steps(14) .5s both}
+.fi-head-move{animation:fi-sweep .6s ease-in-out infinite alternate}
+.fi-mini .fi-obj,.fi-mini .fi-gantry{animation:none}
+@keyframes fi-grow{from{transform:scaleY(.02)}to{transform:scaleY(1)}}
+@keyframes fi-rise{from{transform:translateY(56px)}to{transform:none}}
+@keyframes fi-sweep{from{transform:translateX(-20px)}to{transform:translateX(20px)}}
+@keyframes fi-pop{from{transform:scale(.3);opacity:0}to{transform:none;opacity:1}}
+
+/* Logo de Claude (imagen provista, sin modificar) */
+.fi-logo{position:absolute;width:var(--lw);aspect-ratio:1;right:14%;bottom:34%;animation:fi-logoin .7s cubic-bezier(.3,1.5,.5,1) both}
+.fi-logo img{position:relative;width:100%;height:100%;display:block;border-radius:22%}
+.fi-halo{position:absolute;inset:-30%;border-radius:50%;background:radial-gradient(circle,rgba(217,119,87,.55),transparent 65%);
+  opacity:calc(.5 + var(--kick) * .5)}
+.fi-orbit{position:absolute;inset:-18%;animation:fi-spin 6s linear infinite}
+.fi-orbit i{position:absolute;width:7%;aspect-ratio:1;border-radius:50%;background:#d7fa58}
+.fi-orbit i:nth-child(1){top:0;left:46%}
+.fi-orbit i:nth-child(2){bottom:10%;left:6%;background:#f3f3ed}
+.fi-orbit i:nth-child(3){bottom:10%;right:6%}
+.fi-logo.fi-mini{width:calc(var(--lw) * .75);right:4%;bottom:calc(12% + 1cqw)}
+@keyframes fi-logoin{from{transform:scale(0) rotate(-120deg);opacity:0}to{transform:none;opacity:1}}
+@keyframes fi-spin{to{transform:rotate(360deg)}}
+
+.fi-bubble{position:absolute;left:6%;bottom:calc(12% + var(--fw) * 1.62);max-width:36cqw;background:#f3f3ed;color:#191d16;
+  font:600 clamp(12px,2.4cqw,18px)/1.3 'DM Sans',sans-serif;padding:.7em 1em;border-radius:14px;opacity:0;
+  animation:fi-pop .4s ease .5s both}
+.fi-bubble::after{content:"";position:absolute;left:22%;bottom:-8px;border:8px solid transparent;border-top-color:#f3f3ed;border-bottom:0}
+
+/* Textos */
+.fi-caption{text-align:center;padding:0 5vw;margin-top:clamp(10px,2.5vh,24px)}
+.fi-caption h2{font:800 clamp(26px,5.2vw,54px)/1.05 Manrope,sans-serif;letter-spacing:-.05em;margin:0}
+.fi-caption h2 em{font-family:Georgia,serif;font-weight:400;color:#d7fa58}
+.fi-caption p{font:11px 'DM Mono',monospace;letter-spacing:.14em;color:#adb69e;margin:10px 0 0;text-transform:uppercase}
+.fi-price{display:inline-block;margin-top:12px;background:#d7fa58;color:#191d16;border-radius:12px;padding:9px 14px;
+  font:500 13px/1.4 'DM Sans',sans-serif;opacity:0;animation:fi-pop .4s ease 1.8s both}
+.fi-price b{font:800 16px Manrope,sans-serif;margin-right:6px}
+.fi-price small{display:block;font:11px 'DM Mono',monospace;color:#3a4136;letter-spacing:.04em;margin-top:2px}
+
+/* Vertical (celulares) */
+@media (orientation:portrait){
+  html.fep-intro-on .fep-intro{--fw:27cqw;--pw:60cqw;--lw:34cqw}
+  .fi-stage{aspect-ratio:4/5;width:min(100vw,calc((100dvh - 230px) * .8))}
+  .fi-sc-b .fi-fep{left:36%}
+  .fi-sc-c .fi-printer{right:2%}
+  .fi-sc-d .fi-fep{left:4%}
+  .fi-logo{right:6%;bottom:42%}
+  .fi-bubble{left:3%;max-width:52cqw;font-size:13px;bottom:calc(12% + var(--fw) * 1.62)}
+  .fi-printer.fi-mini{left:0}
+  .fi-logo.fi-mini{right:1%;bottom:calc(12% + 1cqw)}
+  .fi-caption h2{font-size:clamp(26px,9vw,44px)}
+}
+
+/* Respeto a quien prefiere menos movimiento: sin animaciones ni destellos.
+   (La intro tampoco se muestra: ver el script de layout.js.) */
+@media (prefers-reduced-motion:reduce){
+  .fep-intro,.fep-intro *{animation:none!important;transition:none!important}
+}
